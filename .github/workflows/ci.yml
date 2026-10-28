@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  foundry:
+    name: Format, build and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Check formatting
+        run: forge fmt --check
+
+      - name: Build
+        run: forge build --sizes
+
+      - name: Test
+        run: forge test -vvv
+
+      - name: Confirm no secrets are tracked
+        run: |
+          set -eu
+          # Fail if a tracked file looks like it carries a key, seed phrase or authenticated RPC URL.
+          if git grep -nIE '(PRIVATE_KEY[[:space:]]*=[[:space:]]*[0-9a-fA-F]{16,}|(mnemonic|seed.?phrase)[[:space:]]*[:=][[:space:]]*"[a-z ]{20,}|https://[a-z0-9.-]+/(v2|v3)/[A-Za-z0-9_-]{16,})' -- . ':!lib' ; then
+            echo "::error::Possible credential committed to a tracked file."
+            exit 1
+          fi
+          echo "No credential patterns found."

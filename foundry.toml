@@ -1,0 +1,25 @@
+[profile.default]
+src = "src"
+test = "test"
+script = "script"
+out = "out"
+libs = ["lib"]
+solc = "0.8.24"
+optimizer = true
+optimizer_runs = 200
+evm_version = "cancun"
+fs_permissions = []
+
+[fmt]
+line_length = 100
+tab_width = 4
+bracket_spacing = false
+int_types = "long"
+
+[rpc_endpoints]
+sepolia = "${SEPOLIA_RPC_URL}"
+
+[lint]
+# Deadline comparisons are the point of this contract, and `onlyBeneficiary` is kept as a named
+# modifier for readability even though `collect()` is its only user.
+exclude_lints = ["block-timestamp", "modifier-used-only-once"]

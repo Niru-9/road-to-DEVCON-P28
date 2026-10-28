@@ -1,0 +1,45 @@
+# ---------------------------------------------------------------
+# Secrets. Nothing in this section may ever be committed.
+# ---------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.keystore
+keystore/
+secrets/
+.private/
+
+# ---------------------------------------------------------------
+# Foundry build artefacts
+# ---------------------------------------------------------------
+out/
+cache/
+broadcast/
+docs/book/
+
+# ---------------------------------------------------------------
+# Frontend / node
+# ---------------------------------------------------------------
+node_modules/
+.next/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.next-env.d.ts
+
+# ---------------------------------------------------------------
+# Editor / OS
+# ---------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+
+# Generated agent tooling
+.claude/
+.agents/
+

@@ -1,0 +1,19 @@
+{
+  "$comment": "Tracked record of the live Sepolia deployment. This file contains public chain data only — never a key, seed phrase or authenticated RPC URL.",
+  "contract": "StepwellCampaign",
+  "network": "sepolia",
+  "chainId": 11155111,
+  "address": null,
+  "explorer": null,
+  "deploymentTx": null,
+  "deployedAt": null,
+  "deployer": null,
+  "constructorArgs": {
+    "targetWei": null,
+    "deadline": null,
+    "beneficiary": null
+  },
+  "source": "src/StepwellCampaign.sol",
+  "compiler": "0.8.24",
+  "status": "pending-deploy"
+}
