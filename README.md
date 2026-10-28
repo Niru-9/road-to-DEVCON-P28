@@ -1,4 +1,4 @@
-# Stepwell — a meetup that only happens if we all chip in
+﻿# Stepwell — a meetup that only happens if we all chip in
 
 > The old stepwells were dug by the whole village — or not at all.
 
@@ -11,7 +11,7 @@ moves. When the deadline passes, the contract — not the organiser — decides 
 | Outcome | What the contract allows |
 | --- | --- |
 | `totalPledged >= target` | Meera collects the whole pot, **exactly once** |
-| `totalPledged < target` | each pledger pulls back **their own** ETH, individually |
+| `totalPledged <  target` | each pledger pulls back **their own** ETH, individually |
 
 There is no owner, no admin, no pause, no cancel, and no sweep. The beneficiary has one privilege in
 the entire contract: a single `collect()` on a campaign that actually hit its target. Nobody —
@@ -25,12 +25,12 @@ including Meera — can move a pledger's ETH in any other direction.
 | --- | --- |
 | Network | Sepolia (`chainId 11155111`) |
 | Contract | `StepwellCampaign` |
-| Address | `0x…` — _populated from `deployments/sepolia.json` right after deploy_ |
-| Target | 1 ETH |
-| Deadline | deployment time + 14 days |
+| Address | _populated from [`deployments/sepolia.json`](deployments/sepolia.json) right after deploy_ |
+| Target | 0.05 ETH |
+| Deadline | deployment time + 24 hours |
 | Beneficiary | Meera's wallet |
 
-The machine-readable record lives in [`deployments/sepolia.json`](deployments/sepolia.json).
+The machine-readable record lives in `deployments/sepolia.json`.
 
 ---
 
@@ -57,7 +57,7 @@ The machine-readable record lives in [`deployments/sepolia.json`](deployments/se
 
 ```
 src/StepwellCampaign.sol              the contract (single file, zero imports — Remix-ready)
-test/StepwellCampaign.t.sol           37 behavioural, boundary, reentrancy and fuzz tests
+test/StepwellCampaign.t.sol           38 behavioural, boundary, reentrancy and fuzz tests
 test/StepwellCampaign.invariant.t.sol stateful invariants over random action orderings
 script/Deploy.s.sol                   Foundry deployment script (env-driven, no hard-coded secrets)
 deployments/sepolia.json              the tracked record of the live Sepolia deployment
@@ -72,7 +72,7 @@ docs/DESIGN.md                        threats, state machine, invariants, decisi
 ```bash
 # Foundry 1.x (https://book.getfoundry.sh/getting-started/installation)
 forge build
-forge test                 # 37 tests, including 128k-call invariant runs
+forge test                 # 38 tests, including 128k-call invariant runs
 forge fmt --check
 ```
 
@@ -97,10 +97,10 @@ Foundry dependencies are vendored in `lib/`, so a plain `git clone` is enough �
    | `deadline_` | `uint256` | `1790000000` | unix **seconds**, must be in the future |
    | `beneficiary_` | `address` | `0x…` | Meera's wallet |
 
-   Handy conversions: `0.1 ETH = 100000000000000000`, `0.5 ETH = 500000000000000000`,
-   `1 ETH = 1000000000000000000`, `2 ETH = 2000000000000000000`.
+   Handy conversions: `0.05 ETH = 50000000000000000`, `0.1 ETH = 100000000000000000`,
+   `0.5 ETH = 500000000000000000`, `1 ETH = 1000000000000000000`.
    Deadline is unix **seconds**, not milliseconds. In any browser console:
-   `Math.floor(Date.now() / 1000) + 14 * 86400` gives "14 days from now". Never pass a
+   `Math.floor(Date.now() / 1000) + 24 * 3600` gives "24 hours from now". Never pass a
    millisecond value — it would set a deadline roughly 50,000 years out.
 6. **Deploy**, confirm in MetaMask, then copy the contract address and the transaction hash into
    `deployments/sepolia.json` and into the table above.
@@ -151,7 +151,8 @@ The deadline is **closed at the boundary**: a pledge in the block whose `block.t
 
 ## Test coverage
 
-`forge test` → **37 passing** (36 example-based + 1 stateful invariant suite, 128,000 calls).
+`forge test` → **38 passing** (37 example-based + 1 stateful invariant suite, 128,000 calls).
+`forge coverage` → **100% lines, statements, branches and functions** on `StepwellCampaign.sol`.
 
 | Area | Tests |
 | --- | --- |
@@ -159,7 +160,7 @@ The deadline is **closed at the boundary**: a pledge in the block whose `block.t
 | Pledging: `msg.value` crediting, accumulation, zero value, deadline boundary | 7 |
 | Collection: access, target check, single payout, exact deadline, forced ETH | 6 |
 | Refunds: own pledge only, zeroing, double refund, non-pledger, target-met lockout | 9 |
-| Reentrancy: refund, collect, recipient that rejects ETH | 3 |
+| Reentrancy and hostile recipients: refund, collect, rejecting pledger/beneficiary | 4 |
 | Views used by the frontend (`summary`, progress, time left) | 4 |
 | Stateful invariants: balance == outstanding pledges, pledge conservation | 3 invariants |
 

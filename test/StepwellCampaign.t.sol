@@ -420,6 +420,24 @@ contract StepwellCampaignTest is Test {
         assertEq(address(campaign).balance, 1 ether);
     }
 
+    /// @notice If the beneficiary cannot receive ETH, the payout reverts and the latch rolls back,
+    ///         so the pot is never marked collected without money having moved.
+    function test_CollectRevertsCleanlyWhenBeneficiaryRejectsEth() public {
+        RejectingBeneficiary hostile = new RejectingBeneficiary();
+        campaign = new StepwellCampaign(TARGET, deadline, payable(address(hostile)));
+        hostile.setCampaign(campaign);
+
+        _pledge(alice, TARGET);
+        _pastDeadline();
+
+        vm.expectRevert(StepwellCampaign.TransferFailed.selector);
+        hostile.collectOnce();
+
+        assertFalse(campaign.collected());
+        assertEq(address(campaign).balance, TARGET);
+        assertEq(uint8(campaign.state()), uint8(StepwellCampaign.State.Succeeded));
+    }
+
     // ------------------------------------------------------------------
     // Views used by the frontend
     // ------------------------------------------------------------------
@@ -553,6 +571,23 @@ contract RejectingPledger {
 
     function claim() external {
         campaign.refund();
+    }
+
+    receive() external payable {
+        revert("no thanks");
+    }
+}
+
+/// @dev Beneficiary that refuses ETH, to prove a failed payout never latches `collected`.
+contract RejectingBeneficiary {
+    StepwellCampaign private campaign;
+
+    function setCampaign(StepwellCampaign campaign_) external {
+        campaign = campaign_;
+    }
+
+    function collectOnce() external {
+        campaign.collect();
     }
 
     receive() external payable {
