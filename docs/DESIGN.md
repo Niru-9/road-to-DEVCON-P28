@@ -103,7 +103,7 @@ Order:
 failed, and `state()` must keep reporting `Failed` as refunds drain the pot. The contract's ETH
 balance, not `totalPledged`, is what decreases.
 
-### No `receive()`
+### `receive()` rejects bare ETH
 
 A bare ETH transfer reverts with `UsePledgeFunction()`. Without this, someone could send ETH with no
 attribution and it would be permanently stuck — an inviting target for a "rescue" function, which

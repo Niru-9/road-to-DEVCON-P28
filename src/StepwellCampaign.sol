@@ -26,8 +26,8 @@ pragma solidity ^0.8.24;
  *      3. Reentrancy guard on every function that sends ETH, as a second line of defence behind
  *         rule 1.
  *      4. Campaign terms are immutable, fixed at construction. There is no setter to audit.
- *      5. No `receive()`: plain transfers revert instead of silently trapping ETH in a contract
- *         that has no way to return it.
+ *      5. `receive()` rejects bare transfers: unattributable ETH reverts instead of getting stuck
+ *         in a contract that has no way to return it.
  *
  *      The file is intentionally dependency-free so it can be pasted into Remix as-is.
  */

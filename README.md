@@ -48,7 +48,7 @@ The machine-readable record lives in [`deployments/sepolia.json`](deployments/se
    a second line of defence.
 5. **The target is enforced on-chain.** Collection reverts below target; refunds revert at or above
    it. The UI only ever reflects what the contract already guarantees.
-6. **Bare ETH is refused.** There is no `receive()`, so a plain transfer reverts instead of leaving
+6. **Bare ETH is refused.** `receive()` reverts, so a plain transfer can never leave
    unattributable ETH stuck in a contract with no way to return it.
 
 ---
@@ -99,7 +99,9 @@ Foundry dependencies are vendored in `lib/`, so a plain `git clone` is enough â€
 
    Handy conversions: `0.1 ETH = 100000000000000000`, `0.5 ETH = 500000000000000000`,
    `1 ETH = 1000000000000000000`, `2 ETH = 2000000000000000000`.
-   Deadline: `date +%s` gives now in seconds; add `1209600` for 14 days.
+   Deadline is unix **seconds**, not milliseconds. In any browser console:
+   `Math.floor(Date.now() / 1000) + 14 * 86400` gives "14 days from now". Never pass a
+   millisecond value â€” it would set a deadline roughly 50,000 years out.
 6. **Deploy**, confirm in MetaMask, then copy the contract address and the transaction hash into
    `deployments/sepolia.json` and into the table above.
 

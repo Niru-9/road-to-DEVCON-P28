@@ -9,9 +9,9 @@ import {StepwellCampaign} from "../src/StepwellCampaign.sol";
  *         `deployments/sepolia.json` and the frontend config.
  *
  * @dev Configuration comes from the environment (see `.env.example`):
- *        CAMPAIGN_BENEFICIARY   address that receives the pot on success   (required)
- *        CAMPAIGN_TARGET_ETH    funding target in whole ETH                 (default 1)
- *        CAMPAIGN_DURATION_DAYS days between deployment and the deadline    (default 14)
+ *        CAMPAIGN_BENEFICIARY   address that receives the pot on success      (required)
+ *        CAMPAIGN_TARGET_WEI    funding target in wei                        (default 1 ether)
+ *        CAMPAIGN_DURATION_DAYS days between deployment and the deadline     (default 14)
  *        PRIVATE_KEY            only read by `--broadcast` / `--private-key`, never by this file
  *
  *      Simulate (no funds, no key needed):
@@ -27,10 +27,9 @@ import {StepwellCampaign} from "../src/StepwellCampaign.sol";
 contract DeployStepwell is Script {
     function run() external returns (StepwellCampaign campaign) {
         address payable beneficiary = payable(vm.envAddress("CAMPAIGN_BENEFICIARY"));
-        uint256 targetEth = vm.envOr("CAMPAIGN_TARGET_ETH", uint256(1));
+        uint256 target = vm.envOr("CAMPAIGN_TARGET_WEI", uint256(1 ether));
         uint256 durationDays = vm.envOr("CAMPAIGN_DURATION_DAYS", uint256(14));
 
-        uint256 target = targetEth * 1 ether;
         uint256 deadline = block.timestamp + durationDays * 1 days;
 
         vm.startBroadcast();
