@@ -1,4 +1,4 @@
-﻿# Stepwell — a meetup that only happens if we all chip in
+# Stepwell — a meetup that only happens if we all chip in
 
 > The old stepwells were dug by the whole village — or not at all.
 
