@@ -1,19 +1,36 @@
 {
-  "$comment": "Tracked record of the live Sepolia deployment. This file contains public chain data only — never a key, seed phrase or authenticated RPC URL.",
+  "$comment": "Tracked record of the live Sepolia deployment. Public chain data only — no key, seed phrase or authenticated RPC URL belongs in this file.",
   "contract": "StepwellCampaign",
   "network": "sepolia",
   "chainId": 11155111,
-  "address": null,
-  "explorer": null,
-  "deploymentTx": null,
-  "deployedAt": null,
-  "deployer": null,
+  "address": "0x468926db1F042A7237729E1b9336352Af96aF020",
+  "explorer": "https://sepolia.etherscan.io/address/0x468926db1F042A7237729E1b9336352Af96aF020",
+  "deploymentTx": "0x940cbaf8740e38fd5ab46eb70000a2e9091733066f34aa928daa0802308b1590",
+  "deploymentTxUrl": "https://sepolia.etherscan.io/tx/0x940cbaf8740e38fd5ab46eb70000a2e9091733066f34aa928daa0802308b1590",
+  "blockNumber": 12017878,
+  "deployedAt": "2026-10-29T07:02:12.000Z",
+  "deployer": "0x0d3477209913afFAF06CDe63Dd0F13f4C5728135",
   "constructorArgs": {
-    "targetWei": null,
-    "deadline": null,
-    "beneficiary": null
+    "targetWei": "50000000000000000",
+    "targetEth": "0.05",
+    "deadline": 1793343612,
+    "deadlineIso": "2026-10-30T07:00:12.000Z",
+    "beneficiary": "0x0d3477209913afFAF06CDe63Dd0F13f4C5728135"
   },
   "source": "src/StepwellCampaign.sol",
-  "compiler": "0.8.24",
-  "status": "pending-deploy"
+  "compiler": "0.8.34",
+  "optimizer": "unknown (Remix settings not recorded)",
+  "sourceVerified": false,
+  "deploymentGasUsed": 8829701,
+  "liveReadback": {
+    "checkedAt": "2026-10-29T07:15:00.000Z",
+    "target": "50000000000000000",
+    "deadline": 1793343612,
+    "beneficiary": "0x0d3477209913afFAF06CDe63Dd0F13f4C5728135",
+    "createdAt": 1793257332,
+    "totalPledged": "0",
+    "state": "Active",
+    "collected": false
+  },
+  "status": "deployed"
 }

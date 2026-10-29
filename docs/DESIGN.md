@@ -160,14 +160,24 @@ is exactly the escape hatch we refuse to add.
 - **No factory.** One campaign per deployment keeps the trust story simple: every campaign's terms
   are visible in its own constructor arguments on Etherscan.
 
-## 8. Deployment plan
+## 8. Deployment record
 
-1. Deploy from Remix + MetaMask on Sepolia (no key ever leaves the browser).
-2. Constructor: `target_ = 1e18`, `deadline_ = now + 14 days`, `beneficiary_ = Meera's wallet`.
-3. Record address, tx hash, deployer and constructor arguments in `deployments/sepolia.json` and in
-   the README table.
-4. Smoke-test from a second account on the live address: pledge a small amount, read `summary()`,
-   confirm `pledges(caller)` and `progressBps()`.
+| | |
+| --- | --- |
+| Address | `0x468926db1F042A7237729E1b9336352Af96aF020` (Sepolia) |
+| Tx | `0x940cbaf8740e38fd5ab46eb70000a2e9091733066f34aa928daa0802308b1590` |
+| Block | 12017878 |
+| Deployed at | 2026-10-29T07:02:12Z |
+| Target / deadline / beneficiary | 0.05 ETH / `1793343612` / `0x0d3477209913afFAF06CDe63Dd0F13f4C5728135` |
+| Compiler used in Remix | 0.8.34 |
+
+Deployed from Remix + MetaMask, so no key ever entered this repository or the toolchain. The
+constructor arguments were read back from the live contract and match the deployment record in
+`deployments/sepolia.json`.
+
+Remaining operational step: publish the source on Etherscan (needs the exact Remix compiler settings
+— 0.8.34 plus whatever optimiser setting was active) so a judge can read the code from the address
+itself. The repository copy is the authoritative source either way.
 
 ## 9. Frontend contract (for the UI phase)
 

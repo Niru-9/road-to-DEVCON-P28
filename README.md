@@ -24,11 +24,13 @@ including Meera — can move a pledger's ETH in any other direction.
 | | |
 | --- | --- |
 | Network | Sepolia (`chainId 11155111`) |
-| Contract | `StepwellCampaign` |
-| Address | _populated from [`deployments/sepolia.json`](deployments/sepolia.json) right after deploy_ |
-| Target | 0.05 ETH |
-| Deadline | deployment time + 24 hours |
-| Beneficiary | Meera's wallet |
+| Contract | [`0x468926db1F042A7237729E1b9336352Af96aF020`](https://sepolia.etherscan.io/address/0x468926db1F042A7237729E1b9336352Af96aF020) |
+| Deployment tx | [`0x940cbaf8…b1590`](https://sepolia.etherscan.io/tx/0x940cbaf8740e38fd5ab46eb70000a2e9091733066f34aa928daa0802308b1590) (block 12017878) |
+| Target | 0.05 ETH (`50000000000000000` wei) |
+| Deadline | `1793343612` → 2026-10-30 07:00:12 UTC |
+| Beneficiary | [`0x0d3477209913afFAF06CDe63Dd0F13f4C5728135`](https://sepolia.etherscan.io/address/0x0d3477209913afFAF06CDe63Dd0F13f4C5728135) |
+| Deployer | `0x0d3477209913afFAF06CDe63Dd0F13f4C5728135` |
+| Verified read-back | `target`, `deadline`, `beneficiary`, `createdAt` all match; `state() = Active`, `totalPledged() = 0` |
 
 The machine-readable record lives in `deployments/sepolia.json`.
 
