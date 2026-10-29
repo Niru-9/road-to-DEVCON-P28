@@ -1,6 +1,4 @@
-# ---------------------------------------------------------------
-# Secrets. Nothing in this section may ever be committed.
-# ---------------------------------------------------------------
+# Secrets
 .env
 .env.*
 !.env.example
@@ -11,17 +9,17 @@ keystore/
 secrets/
 .private/
 
-# ---------------------------------------------------------------
-# Foundry build artefacts
-# ---------------------------------------------------------------
+# Foundry
 out/
 cache/
 broadcast/
 docs/book/
 
-# ---------------------------------------------------------------
-# Frontend / node
-# ---------------------------------------------------------------
+# Dependencies
+lib/forge-std/test/
+lib/forge-std/scripts/
+
+# Node/Frontend
 node_modules/
 .next/
 dist/
@@ -29,17 +27,22 @@ build/
 coverage/
 *.tsbuildinfo
 .next-env.d.ts
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
-# ---------------------------------------------------------------
-# Editor / OS
-# ---------------------------------------------------------------
+# OS/Editor
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+*.swp
+*.swo
 *.log
 
-# Generated agent tooling
+# Internal notes
+action.md
+plan.md
+docs/
 .claude/
 .agents/
-
