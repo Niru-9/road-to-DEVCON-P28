@@ -58,6 +58,7 @@ The machine-readable record lives in `deployments/sepolia.json`.
 ## Repository layout
 
 ```
+frontend/                             Next.js 14 Web3 application (landing page, pledge portal, settlement & proofs)
 src/StepwellCampaign.sol              the contract (single file, zero imports — Remix-ready)
 test/StepwellCampaign.t.sol           38 behavioural, boundary, reentrancy and fuzz tests
 test/StepwellCampaign.invariant.t.sol stateful invariants over random action orderings
