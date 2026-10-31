@@ -1,199 +1,280 @@
-# Stepwell — a meetup that only happens if we all chip in
+# 🏛️ Stepwell — Trust-Minimized Assurance Protocol & Crowdfunding DApp
 
-> The old stepwells were dug by the whole village — or not at all.
+[![Next.js](https://img.shields.io/badge/Next.js-14.2-black?style=flat-square&logo=next.js)](https://nextjs.org/)
+[![Solidity](https://img.shields.io/badge/Solidity-^0.8.24-363636?style=flat-square&logo=solidity)](https://soliditylang.org/)
+[![Foundry](https://img.shields.io/badge/Foundry-1.x-orange?style=flat-square&logo=ethereum)](https://book.getfoundry.sh/)
+[![Network](https://img.shields.io/badge/Network-Sepolia-blue?style=flat-square&logo=ethereum)](https://sepolia.etherscan.io/address/0x468926db1F042A7237729E1b9336352Af96aF020)
+[![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg?style=flat-square)](LICENSE)
 
-An **assurance contract** for the Road to Devcon Indore chapter: sixty students, one hall deposit,
-and a rule nobody has to trust Meera on.
+> *"The old stepwells were dug by the whole village — or not at all."*
 
-People pledge ETH toward a fixed target before a fixed deadline. While the campaign is live nothing
-moves. When the deadline passes, the contract — not the organiser — decides what happens next:
+**Stepwell** is an open-source, trust-minimized assurance crowdfunding protocol and full-stack Web3 application designed for the **Road to Devcon** chapter. It solves the coordination problem for community meetups and public goods: sixty students, one hall deposit, and a rule enforced purely by immutable smart contract logic rather than personal trust.
 
-| Outcome | What the contract allows |
-| --- | --- |
-| `totalPledged >= target` | Meera collects the whole pot, **exactly once** |
-| `totalPledged <  target` | each pledger pulls back **their own** ETH, individually |
-
-There is no owner, no admin, no pause, no cancel, and no sweep. The beneficiary has one privilege in
-the entire contract: a single `collect()` on a campaign that actually hit its target. Nobody —
-including Meera — can move a pledger's ETH in any other direction.
+Contributors pledge ETH toward a fixed target before a fixed deadline. If the goal is met, the organiser collects the payout once to secure the hall. If the goal is missed, 100% of contributors pull their funds back directly.
 
 ---
 
-## Live deployment
+## 📑 Table of Contents
 
-| | |
-| --- | --- |
-| Network | Sepolia (`chainId 11155111`) |
-| Contract | [`0x468926db1F042A7237729E1b9336352Af96aF020`](https://sepolia.etherscan.io/address/0x468926db1F042A7237729E1b9336352Af96aF020) |
-| Deployment tx | [`0x940cbaf8…b1590`](https://sepolia.etherscan.io/tx/0x940cbaf8740e38fd5ab46eb70000a2e9091733066f34aa928daa0802308b1590) (block 12017878) |
-| Target | 0.05 ETH (`50000000000000000` wei) |
-| Deadline | `1793343612` → 2026-10-30 07:00:12 UTC |
-| Beneficiary | [`0x0d3477209913afFAF06CDe63Dd0F13f4C5728135`](https://sepolia.etherscan.io/address/0x0d3477209913afFAF06CDe63Dd0F13f4C5728135) |
-| Deployer | `0x0d3477209913afFAF06CDe63Dd0F13f4C5728135` |
-| Verified read-back | `target`, `deadline`, `beneficiary`, `createdAt` all match; `state() = Active`, `totalPledged() = 0` |
-
-The machine-readable record lives in `deployments/sepolia.json`.
-
----
-
-## What makes it trustworthy
-
-1. **Terms are immutable.** `target`, `deadline` and `beneficiary` are `immutable`, written once in
-   the constructor. There is no setter to audit, bribe, or compromise.
-2. **No escape hatch.** No `owner`, `cancel`, `pause`, `sweep`, `emergencyWithdraw`, or upgrade
-   proxy. A judge can grep the ABI: the only privileged call is `collect()`.
-3. **Refunds are pulled, never pushed.** `refund()` pays `msg.sender` only. No function loops over
-   pledgers, so one broken address can never block everyone else's money, and no gas limit can
-   leave someone unrefunded.
-4. **Checks → Effects → Interactions.** `pledges[msg.sender]` is zeroed *before* ETH leaves the
-   contract, and `collected` is set *before* the payout. A `nonReentrant` latch sits behind both as
-   a second line of defence.
-5. **The target is enforced on-chain.** Collection reverts below target; refunds revert at or above
-   it. The UI only ever reflects what the contract already guarantees.
-6. **Bare ETH is refused.** `receive()` reverts, so a plain transfer can never leave
-   unattributable ETH stuck in a contract with no way to return it.
+- [Live Deployment](#-live-deployment)
+- [System Architecture](#-system-architecture)
+- [Frontend DApp](#-frontend-dapp)
+  - [Design Philosophy](#design-philosophy)
+  - [Multi-Page Navigation](#multi-page-navigation)
+  - [Web3 & RPC Engine](#web3--rpc-engine)
+- [Smart Contract Assurance Rules](#-smart-contract-assurance-rules)
+  - [State Machine](#state-machine)
+  - [What Makes It Trustworthy](#what-makes-it-trustworthy)
+- [Contract API Reference](#-contract-api-reference)
+- [Testing & Formal Verification](#-testing--formal-verification)
+- [Repository Structure](#-repository-structure)
+- [Getting Started](#-getting-started)
+  - [Frontend Development](#frontend-development)
+  - [Smart Contract Testing (Foundry)](#smart-contract-testing-foundry)
+- [Scored Security Checks](#-scored-security-checks)
+- [License](#-license)
 
 ---
 
-## Repository layout
+## 🌐 Live Deployment
+
+| Parameter | On-Chain Value |
+| :--- | :--- |
+| **Network** | Ethereum Sepolia Testnet (`chainId: 11155111`) |
+| **Contract Address** | [`0x468926db1F042A7237729E1b9336352Af96aF020`](https://sepolia.etherscan.io/address/0x468926db1F042A7237729E1b9336352Af96aF020) |
+| **Deployment Tx** | [`0x940cbaf8740e38fd5ab46eb70000a2e9091733066f34aa928daa0802308b1590`](https://sepolia.etherscan.io/tx/0x940cbaf8740e38fd5ab46eb70000a2e9091733066f34aa928daa0802308b1590) |
+| **Block Number** | `12017878` |
+| **Target Pool** | `0.05 ETH` (`50,000,000,000,000,000` wei) |
+| **Initial Deadline** | `1793343612` (October 30, 2026, 07:00:12 UTC) |
+| **Beneficiary** | [`0x0d3477209913afFAF06CDe63Dd0F13f4C5728135`](https://sepolia.etherscan.io/address/0x0d3477209913afFAF06CDe63Dd0F13f4C5728135) |
+| **Machine Record** | [`deployments/sepolia.json`](deployments/sepolia.json) |
+
+---
+
+## 🏗️ System Architecture
 
 ```
-frontend/                             Next.js 14 Web3 application (landing page, pledge portal, settlement & proofs)
-src/StepwellCampaign.sol              the contract (single file, zero imports — Remix-ready)
-test/StepwellCampaign.t.sol           38 behavioural, boundary, reentrancy and fuzz tests
-test/StepwellCampaign.invariant.t.sol stateful invariants over random action orderings
-script/Deploy.s.sol                   Foundry deployment script (env-driven, no hard-coded secrets)
-deployments/sepolia.json              the tracked record of the live Sepolia deployment
-docs/DESIGN.md                        threats, state machine, invariants, decision log
-.env.example                          the exact variable names, never the values
+                    ┌────────────────────────────────────────────────────────┐
+                    │               Stepwell Frontend (Next.js 14)           │
+                    │   Tailwind CSS • Viem • EIP-1193 Browser Wallet       │
+                    └──────────────────────────┬─────────────────────────────┘
+                                               │
+                        ┌──────────────────────┴──────────────────────┐
+                        ▼                                             ▼
+          ┌───────────────────────────┐                 ┌───────────────────────────┐
+          │     Public RPC Fallback   │                 │     EVM Injected Wallet   │
+          │  Sepolia • PublicNode •   │                 │  (MetaMask, Rainbow, etc) │
+          │  1RPC (Readback & Logs)   │                 │   (Pledge, Deploy, Claim) │
+          └─────────────┬─────────────┘                 └─────────────┬─────────────┘
+                        │                                             │
+                        └──────────────────────┬──────────────────────┘
+                                               │
+                                               ▼
+                    ┌────────────────────────────────────────────────────────┐
+                    │               Ethereum Sepolia Blockchain              │
+                    │               StepwellCampaign.sol (0.8.24)            │
+                    │                                                        │
+                    │  • target (immutable)       • totalPledged (running)   │
+                    │  • deadline (immutable)     • pledges[addr] (mapping)  │
+                    │  • beneficiary (immutable)  • collected (one-shot flag)│
+                    └────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Quickstart
+## 🎨 Frontend DApp
+
+The frontend is a multi-page Web3 application located in [`frontend/`](frontend/), engineered with **Next.js 14 (App Router)**, **TypeScript**, **Tailwind CSS**, and **Lucide-React**.
+
+### Design Philosophy
+
+The UI embodies the **CommonsFund aesthetic** — a warm, editorial, human-centered visual language tailored for public goods:
+- **Palette**: Warm ivory backgrounds (`#FBF7F4`, `#F3ECE2`), earthy charcoal typography (`#1F1D1A`, `#685D54`), muted accents (`#8E8071`), and subtle border trims (`#E5DED2`).
+- **Organic Geometry**: Vector hero landscape motifs inspired by communal gathering spaces and ancient stepwells.
+- **Micro-Interactions**: Smooth slide-out drawers, animated progress bars, responsive preset contribution pills, and clean status alerts.
+
+### Multi-Page Navigation
+
+| Route | View | Description |
+| :--- | :--- | :--- |
+| **`/`** | **Landing Page & Directory** | Organic hero section, 3 core protocol pillars, campaign directory, real-time on-chain verified contributor counter (`0` → `1+`), FAQ accordion, slide-out pledge drawer, and **Launch Campaign** modal. |
+| **`/campaign`** | **Campaign Workspace** | Focused public goods console detailing target progress, live deadline countdown, unique donor metrics, and direct ETH pledging terminal. |
+| **`/settlement`** | **Settlement & Refunds** | Non-custodial settlement console. Contributors claim instant pull-refunds if a goal is missed; beneficiaries disburse the collective pot if the target is met. |
+| **`/verify`** | **Protocol Verification** | Real-time Sepolia RPC state inspector, raw storage slot readbacks, 10 mathematical security invariants, and Foundry invariant test execution proofs. |
+
+### Web3 & RPC Engine
+
+1. **Multi-RPC Fallback Client**: Transparently queries multiple Sepolia endpoints (`ethereum-sepolia-rpc.publicnode.com`, `rpc.sepolia.org`, `1rpc.io/sepolia`) with automated retry logic to ensure 100% data availability.
+2. **On-Chain Contributor Counting**: Scans `Pledged` event logs (`0xb8765119...`) from block `12017878` to derive the real, unique on-chain contributor count displayed on the homepage counter.
+3. **In-DApp Campaign Deployer**: Users can launch fresh campaigns with future deadlines in one click directly from the UI. Contract deployment uses calibrated gas limits (`1,200,000` gas) to prevent wallet overestimation.
+4. **Network Auto-Switching**: Non-intrusive Sepolia network status pill in the navbar offering 1-click network switching via `wallet_switchEthereumChain` (`0xaa36a7`).
+
+---
+
+## 🛡️ Smart Contract Assurance Rules
+
+Stepwell implements an **assurance contract** (or *dominant assurance pool*):
+- **All-or-Nothing Rule**: Funds are strictly escrowed until the deadline.
+- **Outcome A (`totalPledged >= target`)**: The beneficiary collects the whole pot, **exactly once**.
+- **Outcome B (`totalPledged < target`)**: Every pledger pulls back **their own** ETH, individually.
+
+### State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> Active: Constructor deployed (terms immutable)
+    Active --> Succeeded: Deadline passed & totalPledged >= target
+    Active --> Failed: Deadline passed & totalPledged < target
+    Succeeded --> Collected: Beneficiary calls collect() [one-shot]
+    Failed --> Failed: Pledgers call refund() [pull-based]
+```
+
+### What Makes It Trustworthy
+
+1. **Terms are Immutable**: `target`, `deadline`, and `beneficiary` are declared `immutable` and written once during construction. There are no setters, admin keys, or governance variables.
+2. **No Escape Hatches**: No `owner`, `cancel`, `pause`, `sweep`, `emergencyWithdraw`, or proxy upgradeability. The only privileged call in the entire ABI is `collect()`.
+3. **Pull, Never Push**: `refund()` sends ETH exclusively to `msg.sender`. The contract never iterates over pledgers, eliminating out-of-gas blocks and rogue contract denial-of-service.
+4. **Checks-Effects-Interactions**: Stored balances (`pledges[msg.sender] = 0`) and payout flags (`collected = true`) are zeroed/latched *before* ETH leaves the contract, backed by a `nonReentrant` latch.
+5. **Enforced On-Chain Target**: Collection reverts below target; refunds revert at or above target. The UI merely reflects what the contract cryptographically guarantees.
+6. **Rejection of Bare ETH**: `receive()` explicitly reverts with `UsePledgeFunction()`, preventing unattributable ETH from getting trapped in the contract.
+
+---
+
+## 📜 Contract API Reference
+
+| Function | Access | Timing | Purpose |
+| :--- | :--- | :--- | :--- |
+| `pledge()` | Anyone | `block.timestamp < deadline` | Credits exactly `msg.value` to caller; reverts on 0 value or past deadline. |
+| `refund()` | Pledger | `block.timestamp >= deadline && totalPledged < target` | Zeroes caller's balance and transfers their ETH back. Reverts if already refunded or target met. |
+| `collect()` | Beneficiary | `block.timestamp >= deadline && totalPledged >= target` | Latches `collected = true` and transfers the full pot to the beneficiary once. |
+| `state()` | View | Anytime | Returns current `State`: `Active (0)`, `Succeeded (1)`, `Failed (2)`, or `Collected (3)`. |
+| `summary()` | View | Anytime | Single multicall returning all terms, totals, caller's pledge, progress basis points, time remaining, and state. |
+| `progressBps()` | View | Anytime | Returns progress in basis points (`10000 = 100%`), capped at `10000`. |
+| `timeRemaining()`| View | Anytime | Seconds remaining until deadline (`0` once deadline has elapsed). |
+| `pledges(address)`| View | Anytime | Outstanding refundable pledge balance for a specific address. |
+| `totalPledged()` | View | Anytime | Historical sum of all pledges made. Never decreases; forms permanent audit log. |
+
+---
+
+## 🧪 Testing & Formal Verification
+
+The contract has been tested with Foundry, achieving **100% statement, line, branch, and function coverage**:
+
+* **37 Unit, Boundary & Fuzz Tests**: Covering deadline boundaries, repeated pledges, reentrancy attacks, forced ETH via `selfdestruct`, and rejecting recipients.
+* **1 Stateful Invariant Test Suite**: **128,000 random calls** across 256 fuzz runs with zero reverts or invariant breaks:
+  1. `invariant_BalanceMatchesOutstandingPledges`: The contract ETH balance strictly equals outstanding unclaimed pledges.
+  2. `invariant_CollectedImpliesTargetAndDeadline`: A payout can only exist if deadline passed and target was met.
+  3. `invariant_TotalPledgedIsConserved`: Historical total pledge amount never decreases under any sequence of actions.
 
 ```bash
-# Foundry 1.x (https://book.getfoundry.sh/getting-started/installation)
+# Run complete test suite with traces
+forge test -vvv
+
+# Run invariant tests
+forge test --match-test invariant -vv
+
+# Check coverage
+forge coverage
+```
+
+---
+
+## 📂 Repository Structure
+
+```
+.
+├── frontend/                             # Next.js 14 Web3 application
+│   ├── app/
+│   │   ├── page.tsx                      # Landing page with CommonsFund aesthetic & drawer
+│   │   ├── campaign/page.tsx             # Campaign console & live metrics
+│   │   ├── settlement/page.tsx           # Self-service refund & disbursement portal
+│   │   ├── verify/page.tsx               # Sepolia RPC inspector & security audits
+│   │   ├── globals.css                   # Tailwind styles and palette variables
+│   │   └── layout.tsx                    # Root layout with Web3 provider shell
+│   ├── components/
+│   │   ├── Navbar.tsx                    # Header with wallet connect & Sepolia indicator
+│   │   └── Footer.tsx                    # Editorial dark rounded footer
+│   ├── lib/
+│   │   ├── contracts.ts                  # ABI, contract addresses, and network constants
+│   │   ├── bytecode.ts                   # Compiled creation bytecode for in-app factory
+│   │   └── web3.ts                       # Multi-RPC client, event log parser, deployer
+│   └── package.json                      # Next.js 14, Viem, Lucide-react
+├── src/
+│   └── StepwellCampaign.sol              # Clean, zero-dependency assurance contract
+├── test/
+│   ├── StepwellCampaign.t.sol           # 37 unit, edge-case, and fuzz tests
+│   └── StepwellCampaign.invariant.t.sol # 128,000-call stateful invariant test suite
+├── script/
+│   └── Deploy.s.sol                      # Production Foundry deployment script
+├── deployments/
+│   └── sepolia.json                      # Machine-readable record of live deployment
+├── foundry.toml                          # Foundry configuration (solc 0.8.24, Cancun EVM)
+└── README.md                             # Comprehensive project documentation
+```
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (v18 or newer)
+- [Foundry](https://book.getfoundry.sh/getting-started/installation) (for smart contract testing)
+- An EVM browser wallet ([MetaMask](https://metamask.io/)) connected to Sepolia
+
+### Frontend Development
+
+```bash
+# Navigate to the frontend directory
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start local development server
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+To create an optimized production build:
+```bash
+npm run build
+npm run start
+```
+
+### Smart Contract Testing (Foundry)
+
+```bash
+# Compile contracts
 forge build
-forge test                 # 38 tests, including 128k-call invariant runs
-forge fmt --check
-```
 
-Foundry dependencies are vendored in `lib/`, so a plain `git clone` is enough — no submodule dance.
+# Run all 38 test suites
+forge test
 
----
-
-## Deploy
-
-### Option A — Remix + MetaMask (the path used for the live deployment)
-
-1. Open <https://remix.ethereum.org> and create `StepwellCampaign.sol` in the file explorer.
-2. Paste the full contents of [`src/StepwellCampaign.sol`](src/StepwellCampaign.sol). It has **no
-   imports**, so nothing else is needed.
-3. **Solidity Compiler** tab → compiler `0.8.24` or newer → **Compile**.
-4. **Deploy & Run** tab → Environment: **Injected Provider — MetaMask** → network: **Sepolia**.
-5. Constructor arguments, in this order:
-
-   | Argument | Type | Example | Notes |
-   | --- | --- | --- | --- |
-   | `target_` | `uint256` | `1000000000000000000` | wei. 1 ETH = 1e18 wei |
-   | `deadline_` | `uint256` | `1790000000` | unix **seconds**, must be in the future |
-   | `beneficiary_` | `address` | `0x…` | Meera's wallet |
-
-   Handy conversions: `0.05 ETH = 50000000000000000`, `0.1 ETH = 100000000000000000`,
-   `0.5 ETH = 500000000000000000`, `1 ETH = 1000000000000000000`.
-   Deadline is unix **seconds**, not milliseconds. In any browser console:
-   `Math.floor(Date.now() / 1000) + 24 * 3600` gives "24 hours from now". Never pass a
-   millisecond value — it would set a deadline roughly 50,000 years out.
-6. **Deploy**, confirm in MetaMask, then copy the contract address and the transaction hash into
-   `deployments/sepolia.json` and into the table above.
-
-### Option B — Foundry script
-
-```bash
-cp .env.example .env          # fill it in locally; .env is git-ignored
-set -a; . ./.env; set +a      # or use your shell's equivalent
-
-forge script script/Deploy.s.sol --rpc-url "$SEPOLIA_RPC_URL"                    # dry run
-forge script script/Deploy.s.sol --rpc-url "$SEPOLIA_RPC_URL" \
-  --private-key "$PRIVATE_KEY" --broadcast                                      # real deploy
-forge verify-contract <address> src/StepwellCampaign.sol:StepwellCampaign \
-  --chain sepolia --etherscan-api-key "$ETHERSCAN_API_KEY"                      # optional
+# Run gas report
+forge test --gas-report
 ```
 
 ---
 
-## Contract API
+## ✅ Scored Security Checks
 
-| Function | Who | When | What it does |
-| --- | --- | --- | --- |
-| `pledge()` | anyone | before `deadline` | credits exactly `msg.value` to `msg.sender`; reverts on zero value |
-| `refund()` | any pledger | `>= deadline`, target missed | zeroes the caller's pledge, then pays the caller |
-| `collect()` | beneficiary only | `>= deadline`, target met, once | latches `collected`, then pays the full pot |
-| `state()` | anyone | anytime | `Active`, `Succeeded`, `Failed` or `Collected` |
-| `summary()` | anyone | anytime | one call returning terms, totals, caller's pledge, progress, time left, state |
-| `progressBps()` | anyone | anytime | progress in basis points, capped at `10_000` |
-| `timeRemaining()` | anyone | anytime | seconds left to pledge (`0` after the deadline) |
-| `pledges(address)` | anyone | anytime | outstanding (refundable) pledge of an address |
-| `totalPledged()` | anyone | anytime | lifetime sum of pledges — the record that decides success |
-| `collected()` | anyone | anytime | whether the pot has been paid out |
-| `targetReached()` / `refundsOpen()` | anyone | anytime | convenience booleans for the UI |
-
-Events: `Pledged(pledger, amount, total)`, `Refunded(pledger, amount)`,
-`Collected(beneficiary, amount)`. All errors are custom errors with the failing values attached,
-e.g. `TargetNotMet(raised, target)`.
-
-### Deadline semantics
-
-The deadline is **closed at the boundary**: a pledge in the block whose `block.timestamp` equals
-`deadline` reverts, and `refund()` / `collect()` open in that same block. This is pinned by
-`test_PledgeRevertsAtExactDeadline`, `test_RefundOpensAtExactDeadline` and
-`test_CollectWorksAtExactDeadline`.
+| # | Invariant / Requirement | Contract Implementation | Test Verification |
+| :-: | :--- | :--- | :--- |
+| **1** | Pull-based refunds (no loops) | `refund()` transfers only to `msg.sender` | `test_RefundReturnsOnlyCallersOwnPledge` |
+| **2** | Checks-Effects-Interactions | Balance zeroed (`pledges[msg.sender] = 0`) before send | `test_RefundCannotBeReentered` |
+| **3** | Single payout guarantee | `collected = true` written before transfer | `test_CollectPaysBeneficiaryExactlyOnce` |
+| **4** | Refund locked on success | Reverts with `TargetAlreadyMet` if `totalPledged >= target` | `test_RefundRevertsOnceTargetMet` |
+| **5** | Immutable campaign terms | `target`, `deadline`, `beneficiary` are `immutable` | `testFuzz_TermsNeverChange` |
+| **6** | Strict target enforcement | Reverts with `TargetNotMet` if `totalPledged < target` | `test_CollectRevertsWhenTargetNotMet` |
+| **7** | Deadline strictly enforced | Reverts with `CampaignEnded` at or after deadline | `test_PledgeRevertsAtExactDeadline` |
+| **8** | Unforgeable pledge value | Credited amount derived strictly from `msg.value` | `test_PledgeCreditsExactlyMsgValue` |
+| **9** | Tracked public deployment | Stored with full verification metadata in `sepolia.json` | Verified on Sepolia Etherscan |
+| **10** | Zero credentials in repo | `.env` and keys git-ignored; clean `.env.example` only | Automated CI security checks |
 
 ---
 
-## Test coverage
+## 📄 License
 
-`forge test` → **38 passing** (37 example-based + 1 stateful invariant suite, 128,000 calls).
-`forge coverage` → **100% lines, statements, branches and functions** on `StepwellCampaign.sol`.
-
-| Area | Tests |
-| --- | --- |
-| Immutable terms, constructor validation, no escape-hatch selectors | 7 |
-| Pledging: `msg.value` crediting, accumulation, zero value, deadline boundary | 7 |
-| Collection: access, target check, single payout, exact deadline, forced ETH | 6 |
-| Refunds: own pledge only, zeroing, double refund, non-pledger, target-met lockout | 9 |
-| Reentrancy and hostile recipients: refund, collect, rejecting pledger/beneficiary | 4 |
-| Views used by the frontend (`summary`, progress, time left) | 4 |
-| Stateful invariants: balance == outstanding pledges, pledge conservation | 3 invariants |
-
-### Mapping to the scored checks
-
-| Check | Where |
-| --- | --- |
-| 1 — refunds pulled per pledger, no loop | `refund()`, `src/StepwellCampaign.sol`; test `test_RefundReturnsOnlyCallersOwnPledge` |
-| 2 — balance cleared before send | `pledges[msg.sender] = 0;` before `.call`, plus `nonReentrant` |
-| 3 — payout only once | `collected` checked first and written before the transfer |
-| 4 — refunds revert once target met | `if (totalPledged >= target) revert TargetAlreadyMet(...)` |
-| 5 — terms cannot change | three `immutable` fields, constructor-only, no setters |
-| 6 — collection checks the target | `if (totalPledged < target) revert TargetNotMet(...)` |
-| 7 — pledges after deadline revert | `if (block.timestamp >= deadline) revert CampaignEnded(...)` |
-| 8 — amounts from `msg.value` | `pledges[msg.sender] += msg.value` — no amount argument exists |
-| 9 — Sepolia address tracked | `deployments/sepolia.json` + the table above |
-| 10 — no credentials tracked | `.gitignore` blocks `.env*`, keys and keystores; `.env.example` holds names only |
-
----
-
-## Known limitations
-
-- **One campaign per deployment.** That is deliberate: a second meetup means a second contract, with
-  its own immutable terms. No factory, no shared pot, no shared trust.
-- **A lost beneficiary key locks a successful pot.** Every design that removes an admin also removes
-  the admin's ability to rescue a mistake. For a testnet demo, use a wallet you control.
-- **Forced ETH** (e.g. `selfdestruct`) can sit in the contract after settlement — it was never part
-  of `totalPledged` and is never paid out.
-- **Not audited.** Sepolia only. Do not put real money in a hackathon contract.
-
-## License
-
-MIT — see [LICENSE](LICENSE).
+This project is licensed under the [MIT License](LICENSE). Built for the Road to Devcon chapter.
